@@ -10,4 +10,4 @@
 #SBATCH -p node03-06
 SLURM_RESTART_COUNT=2
 
-python src/mygwcol.py $@
+Rscript src/svd.R $@

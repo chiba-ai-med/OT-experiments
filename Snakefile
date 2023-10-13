@@ -6,41 +6,45 @@ from snakemake.utils import min_version
 # Minimum Version of Snakemake
 min_version("7.1.0")
 
-# DATASETS = ['lipid', 'spatial_multi', 'visium']
-DATASETS = 'lipid'
-SK_PARAMETERS = ['1e+8','1e+9','1e+10','1e+11']
-GWROW_PARAMETERS = ['1E+8','1E+9','1E+10','1E+11']
-GWCOL_PARAMETERS = ['1E+8','1E+9','1E+10','1E+11']
-COOT_PARAMETERS = ['1e+7','2e+7','3e+7','4e+7','5e+7','6e+7','7e+7','8e+7','9e+7','1e+8','1e+9']
-OTTL1_PARAMETERS = ['1E+6','1E+7','1E+8','1E+9']
-OTTL2_PARAMETERS = ['1E+6','1E+7','1E+8','1E+9']
+# DATASETS = ['posneg', 'spatial_multi', 'publicdb']
+DATASETS = 'posneg'
+GW_PARAMETERS = ['1E+8','1E+9','1E+10','1E+11','1E+12','1E+13','1E+14']
+OTT_GW_PARAMETERS = ['1E+9','1E+11','1E+13']
+SVD_PARAMETERS = ['0','1E+9','1E+11','1E+13']
+NMF_PARAMETERS = ['0','1E+9','1E+11','1E+13']
 
 rule all:
 	input:
-		expand('plot/{data}/source.png', data=DATASETS),
-		expand('plot/{data}/target.png', data=DATASETS),
-		expand('plot/{data}/sk_{skp}.png',
-			data=DATASETS, skp=SK_PARAMETERS),
-		expand('plot/{data}/gwrow_{gwrowp}.png',
-			data=DATASETS, gwrowp=GWROW_PARAMETERS),
-		expand('plot/{data}/gwcol_{gwcolp}.png',
-			data=DATASETS, gwcolp=GWCOL_PARAMETERS),
-		expand('plot/{data}/coot_{cootp}.png',
-			data=DATASETS, cootp=COOT_PARAMETERS),
-		expand('plot/{data}/ottl1_{ottl1p}.png',
-			data=DATASETS, ottl1p=OTTL1_PARAMETERS),
-		expand('plot/{data}/ottl2_{ottl2p}.png',
-			data=DATASETS, ottl2p=OTTL2_PARAMETERS)
+		expand('plot/{data}/source_test_data_finish',
+			data=DATASETS),
+		expand('plot/{data}/target_test_data_finish',
+			data=DATASETS),
+		expand('plot/{data}/source_train_data_finish',
+			data=DATASETS),
+		expand('plot/{data}/target_train_data_finish',
+			data=DATASETS),
+		expand('plot/{data}/gw/{gwp}/finish',
+			data=DATASETS, gwp=GW_PARAMETERS),
+		expand('plot/{data}/ott_gw/{ott_gwp}/finish',
+			data=DATASETS, ott_gwp=OTT_GW_PARAMETERS),
+		expand('plot/{data}/svd/{svdp}/finish',
+			data=DATASETS, svdp=SVD_PARAMETERS),
+		expand('plot/{data}/nmf/{nmfp}/finish',
+			data=DATASETS, nmfp=NMF_PARAMETERS)
 
 #################################
 # Data pre-processing
 #################################
 rule preprocess:
 	output:
-		'data/{data}/vec_source.txt',
-		'data/{data}/vec_target.txt',
-		'data/{data}/mat_source.txt',
-		'data/{data}/mat_target.txt'
+		'data/{data}/source_test_data.txt',
+		'data/{data}/target_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt',
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'data/{data}/target_x_coordinate.txt',
+		'data/{data}/target_y_coordinate.txt'
 	container:
 		'docker://koki/ot-experiments-r:20230926'
 	benchmark:
@@ -52,11 +56,19 @@ rule preprocess:
 
 rule plot_data:
 	input:
-		'data/{data}/vec_source.txt',
-		'data/{data}/vec_target.txt'	
+		'data/{data}/source_test_data.txt',
+		'data/{data}/target_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt',
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'data/{data}/target_x_coordinate.txt',
+		'data/{data}/target_y_coordinate.txt'
 	output:
-		'plot/{data}/source.png',
-		'plot/{data}/target.png'	
+		'plot/{data}/source_test_data_finish',
+		'plot/{data}/target_test_data_finish',
+		'plot/{data}/source_train_data_finish',
+		'plot/{data}/target_train_data_finish'
 	container:
 		'docker://koki/ot-experiments-r:20230926'
 	benchmark:
@@ -67,205 +79,168 @@ rule plot_data:
 		'src/plot_{wildcards.data}.sh {input} {output} >& {log}'
 
 #################################
-# Sinkhorn-Knopp
+# Gromov-Wasserstein
 #################################
-rule sk:
+rule gw:
 	input:
-		'data/{data}/vec_source.txt',
-		'data/{data}/vec_target.txt'
+		'data/{data}/source_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt'
 	output:
-		'output/{data}/sk/{skp}/plan.txt1',
-		'output/{data}/sk/{skp}/transported.txt'
+		'output/{data}/gw/{gwp}/plan.txt',
+		'output/{data}/gw/{gwp}/test_transported.txt',
+		'output/{data}/gw/{gwp}/train_transported.txt'
 	container:
 		'docker://koki/ot-experiments:20230925'
+	resources:
+		mem_mb=10000
 	benchmark:
-		'benchmarks/{data}_sk_{skp}.txt'
+		'benchmarks/{data}_gw_{gwp}.txt'
 	log:
-		'logs/{data}_sk_{skp}.log'
+		'logs/{data}_gw_{gwp}.log'
 	shell:
-		'src/sk.sh {input} {output} {wildcards.skp} >& {log}'
-
-#################################
-# Row-wise Gromov-Wasserstein
-#################################
-rule gwrow:
-	input:
-		'data/{data}/mat_source.txt',
-		'data/{data}/mat_target.txt'
-	output:
-		'output/{data}/gwrow/{gwrowp}/plan.txt',
-		'output/{data}/gwrow/{gwrowp}/transported.txt'
-	container:
-		'docker://koki/ot-experiments:20230925'
-	benchmark:
-		'benchmarks/{data}_gwrow_{gwrowp}.txt'
-	log:
-		'logs/{data}_gwrow_{gwrowp}.log'
-	shell:
-		'src/gwrow.sh {input} {output} {wildcards.gwrowp} >& {log}'
-
-rule gwcol:
-	input:
-		'data/{data}/mat_source.txt',
-		'data/{data}/mat_target.txt'
-	output:
-		'output/{data}/gwcol/{gwcolp}/plan.txt',
-		'output/{data}/gwcol/{gwcolp}/transported.txt'
-	container:
-		'docker://koki/ot-experiments:20230925'
-	benchmark:
-		'benchmarks/{data}_gwcol_{gwcolp}.txt'
-	log:
-		'logs/{data}_gwcol_{gwcolp}.log'
-	shell:
-		'src/gwcol.sh {input} {output} {wildcards.gwcolp} >& {log}'
-
-#################################
-# COOT
-#################################
-rule coot:
-	input:
-		'data/{data}/mat_source.txt',
-		'data/{data}/mat_target.txt'
-	output:
-		'output/{data}/coot/{cootp}/plan1.txt',
-		'output/{data}/coot/{cootp}/plan2.txt',
-		'output/{data}/coot/{cootp}/transported.txt'
-	container:
-		'docker://koki/ot-experiments:20230925'
-	benchmark:
-		'benchmarks/{data}_coot_{cootp}.txt'
-	log:
-		'logs/{data}_coot_{cootp}.log'
-	shell:
-		'src/coot.sh {input} {output} {wildcards.cootp} >& {log}'
+		'src/gw.sh {input} {output} {wildcards.gwp} >& {log}'
 
 #################################
 # Optimal Tensor Transport
 #################################
-rule ottl1:
+rule ott_gw:
 	input:
-		'data/{data}/mat_source.txt',
-		'data/{data}/mat_target.txt'
+		'data/{data}/source_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt'
 	output:
-		'output/{data}/ottl1/{ottl1p}/plan1.txt',
-		'output/{data}/ottl1/{ottl1p}/plan2.txt',
-		'output/{data}/ottl1/{ottl1p}/transported.txt'
+		'output/{data}/ott_gw/{ott_gwp}/plan.txt',
+		'output/{data}/ott_gw/{ott_gwp}/test_transported.txt',
+		'output/{data}/ott_gw/{ott_gwp}/train_transported.txt'
 	container:
-		'docker://koki/ott:20230926'
+		'docker://koki/ott:20231012'
+	resources:
+		mem_mb=10000
 	benchmark:
-		'benchmarks/{data}_ottl1_{ottl1p}.txt'
+		'benchmarks/{data}_ott_gw_{ott_gwp}.txt'
 	log:
-		'logs/{data}_ottl1_{ottl1p}.log'
+		'logs/{data}_ott_gw_{ott_gwp}.log'
 	shell:
-		'src/ottl1.sh {input} {output} {wildcards.ottl1p} >& {log}'
+		'src/ott_gw.sh {input} {output} {wildcards.ott_gwp} >& {log}'
 
-rule ottl2:
+#################################
+# SVD → GW
+#################################
+rule svd:
 	input:
-		'data/{data}/mat_source.txt',
-		'data/{data}/mat_target.txt'
+		'data/{data}/source_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt'
 	output:
-		'output/{data}/ottl2/{ottl2p}/plan1.txt',
-		'output/{data}/ottl2/{ottl2p}/plan2.txt',
-		'output/{data}/ottl2/{ottl2p}/transported.txt'
+		'output/{data}/svd/{svdp}/plan.txt',
+		'output/{data}/svd/{svdp}/test_transported.txt',
+		'output/{data}/svd/{svdp}/train_transported.txt'
 	container:
-		'docker://koki/ott:20230926'
+		'docker://koki/ott:20231012'
+	resources:
+		mem_mb=10000
 	benchmark:
-		'benchmarks/{data}_ottl2_{ottl2p}.txt'
+		'benchmarks/{data}_svd_{svdp}.txt'
 	log:
-		'logs/{data}_ottl2_{ottl2p}.log'
+		'logs/{data}_svd_{svdp}.log'
 	shell:
-		'src/ottl2.sh {input} {output} {wildcards.ottl2p} >& {log}'
+		'src/svd.sh {input} {output} {wildcards.svdp} >& {log}'
+
+#################################
+# NMF → GW
+#################################
+rule nmf:
+	input:
+		'data/{data}/source_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt'
+	output:
+		'output/{data}/nmf/{nmfp}/plan.txt',
+		'output/{data}/nmf/{nmfp}/test_transported.txt',
+		'output/{data}/nmf/{nmfp}/train_transported.txt'
+	container:
+		'docker://koki/ott:20231012'
+	resources:
+		mem_mb=10000
+	benchmark:
+		'benchmarks/{data}_nmf_{nmfp}.txt'
+	log:
+		'logs/{data}_nmf_{nmfp}.log'
+	shell:
+		'src/nmf.sh {input} {output} {wildcards.nmfp} >& {log}'
 
 #################################
 # Plot
 #################################
-rule plot_sk:
+rule plot_gw:
 	input:
-		'data/{data}/vec_source.txt',
-		'output/{data}/sk/{skp}/transported.txt'
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'output/{data}/gw/{gwp}/plan.txt',
+		'output/{data}/gw/{gwp}/test_transported.txt',
+		'output/{data}/gw/{gwp}/train_transported.txt'
 	output:
-		'plot/{data}/sk_{skp}.png'
+		'plot/{data}/gw/{gwp}/finish'
 	container:
 		'docker://koki/ot-experiments-r:20230926'
 	benchmark:
-		'benchmarks/plot_ot_{data}_sk_{skp}.txt'
+		'benchmarks/plot_ot_{data}_gw_{gwp}.txt'
 	log:
-		'logs/plot_ot_{data}_sk_{skp}.log'
+		'logs/plot_ot_{data}_gw_{gwp}.log'
 	shell:
 		'src/plot_ot.sh {input} {output} >& {log}'
 
-rule plot_gwrow:
+rule plot_ott_gw:
 	input:
-		'data/{data}/vec_source.txt',
-		'output/{data}/gwrow/{gwrowp}/transported.txt'
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'output/{data}/ott_gw/{ott_gwp}/plan.txt',
+		'output/{data}/ott_gw/{ott_gwp}/test_transported.txt',
+		'output/{data}/ott_gw/{ott_gwp}/train_transported.txt'
 	output:
-		'plot/{data}/gwrow_{gwrowp}.png'
+		'plot/{data}/ott_gw/{ott_gwp}/finish'
 	container:
 		'docker://koki/ot-experiments-r:20230926'
 	benchmark:
-		'benchmarks/plot_ot_{data}_gwrow_{gwrowp}.txt'
+		'benchmarks/plot_ot_{data}_ott_gw_{ott_gwp}.txt'
 	log:
-		'logs/plot_ot_{data}_gwrow_{gwrowp}.log'
+		'logs/plot_ot_{data}_ott_gw_{ott_gwp}.log'
 	shell:
 		'src/plot_ot.sh {input} {output} >& {log}'
 
-rule plot_gwcol:
+rule plot_svd:
 	input:
-		'data/{data}/vec_source.txt',
-		'output/{data}/gwcol/{gwcolp}/transported.txt'
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'output/{data}/svd/{svdp}/plan.txt',
+		'output/{data}/svd/{svdp}/test_transported.txt',
+		'output/{data}/svd/{svdp}/train_transported.txt'
 	output:
-		'plot/{data}/gwcol_{gwcolp}.png'
+		'plot/{data}/svd/{svdp}/finish'
 	container:
 		'docker://koki/ot-experiments-r:20230926'
 	benchmark:
-		'benchmarks/plot_ot_{data}_gwcol_{gwcolp}.txt'
+		'benchmarks/plot_ot_{data}_svd_{svdp}.txt'
 	log:
-		'logs/plot_ot_{data}_gwcol_{gwcolp}.log'
+		'logs/plot_ot_{data}_svd_{svdp}.log'
 	shell:
 		'src/plot_ot.sh {input} {output} >& {log}'
 
-rule plot_coot:
+rule plot_nmf:
 	input:
-		'data/{data}/vec_source.txt',
-		'output/{data}/coot/{cootp}/transported.txt'
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'output/{data}/nmf/{nmfp}/plan.txt',
+		'output/{data}/nmf/{nmfp}/test_transported.txt',
+		'output/{data}/nmf/{nmfp}/train_transported.txt'
 	output:
-		'plot/{data}/coot_{cootp}.png'
+		'plot/{data}/nmf/{nmfp}/finish'
 	container:
 		'docker://koki/ot-experiments-r:20230926'
 	benchmark:
-		'benchmarks/plot_ot_{data}_coot_{cootp}.txt'
+		'benchmarks/plot_ot_{data}_nmf_{nmfp}.txt'
 	log:
-		'logs/plot_ot_{data}_coot_{cootp}.log'
-	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
-
-rule plot_ottl1:
-	input:
-		'data/{data}/vec_source.txt',
-		'output/{data}/ottl1/{ottl1p}/transported.txt'
-	output:
-		'plot/{data}/ottl1_{ottl1p}.png'
-	container:
-		'docker://koki/ot-experiments-r:20230926'
-	benchmark:
-		'benchmarks/plot_ottl1_{data}_ottl1_{ottl1p}.txt'
-	log:
-		'logs/plot_ottl1_{data}_ottl1_{ottl1p}.log'
-	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
-
-rule plot_ottl2:
-	input:
-		'data/{data}/vec_source.txt',
-		'output/{data}/ottl2/{ottl2p}/transported.txt'
-	output:
-		'plot/{data}/ottl2_{ottl2p}.png'
-	container:
-		'docker://koki/ot-experiments-r:20230926'
-	benchmark:
-		'benchmarks/plot_ottl2_{data}_ottl2_{ottl2p}.txt'
-	log:
-		'logs/plot_ottl2_{data}_ottl2_{ottl2p}.log'
+		'logs/plot_ot_{data}_nmf_{nmfp}.log'
 	shell:
 		'src/plot_ot.sh {input} {output} >& {log}'

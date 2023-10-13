@@ -8,7 +8,7 @@ smoothPalette(z,
 }
 
 # Flip y-axis
-.plot_tissue_section <- function(x, y, z){
-	plot(x, -y, col=.mycolor(z), pch=16, cex=5, xaxt="n", yaxt="n", xlab="", ylab="", axes=FALSE)
+.plot_tissue_section <- function(x, y, z, cex=6){
+	plot(x, -y, col=.mycolor(z), pch=16, cex=cex, xaxt="n", yaxt="n", xlab="", ylab="", axes=FALSE)
 }
 
