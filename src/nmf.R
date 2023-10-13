@@ -23,8 +23,8 @@ source_train <- as.matrix(read.csv(infile2, header=FALSE))
 target_train <- as.matrix(read.csv(infile3, header=FALSE))
 
 # NMF
-res_nmf_source_train <- NMF(source_train, J=5)
-res_nmf_target_train <- NMF(target_train, J=5)
+res_nmf_source_train <- NMF(log10(source_train + 1), J=5)
+res_nmf_target_train <- NMF(log10(target_train + 1), J=5)
 
 # Transform
 source_train_dist <- as.matrix(dist(t(res_nmf_source_train$V)))
