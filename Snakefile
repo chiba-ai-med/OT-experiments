@@ -12,6 +12,7 @@ GW_PARAMETERS = ['1E+8','1E+9','1E+10','1E+11','1E+12','1E+13','1E+14']
 OTT_GW_PARAMETERS = ['1E+9','1E+11','1E+13']
 SVD_PARAMETERS = ['0','1E+9','1E+11','1E+13']
 NMF_PARAMETERS = ['0','1E+9','1E+11','1E+13']
+NMF_TD_PARAMETERS = ['0','1E+9','1E+11','1E+13']
 
 rule all:
 	input:
@@ -30,7 +31,9 @@ rule all:
 		expand('plot/{data}/svd/{svdp}/finish',
 			data=DATASETS, svdp=SVD_PARAMETERS),
 		expand('plot/{data}/nmf/{nmfp}/finish',
-			data=DATASETS, nmfp=NMF_PARAMETERS)
+			data=DATASETS, nmfp=NMF_PARAMETERS),
+		expand('plot/{data}/nmf_td/{nmf_tdp}/finish',
+			data=DATASETS, nmf_tdp=NMF_TD_PARAMETERS)
 
 #################################
 # Data pre-processing
@@ -171,6 +174,29 @@ rule nmf:
 		'src/nmf.sh {input} {output} {wildcards.nmfp} >& {log}'
 
 #################################
+# NMF → GW (PyTorchDecomp)
+#################################
+rule nmf_td:
+	input:
+		'data/{data}/source_test_data.txt',
+		'data/{data}/source_train_data.txt',
+		'data/{data}/target_train_data.txt'
+	output:
+		'output/{data}/nmf_td/{nmf_tdp}/plan.txt',
+		'output/{data}/nmf_td/{nmf_tdp}/test_transported.txt',
+		'output/{data}/nmf_td/{nmf_tdp}/train_transported.txt'
+	container:
+		'docker://koki/ot-experiments-td:20240328'
+	resources:
+		mem_mb=10000
+	benchmark:
+		'benchmarks/{data}_nmf_td_{nmf_tdp}.txt'
+	log:
+		'logs/{data}_nmf_td_{nmf_tdp}.log'
+	shell:
+		'src/nmf_td.sh {input} {output} {wildcards.nmf_tdp} >& {log}'
+
+#################################
 # Plot
 #################################
 rule plot_gw:
@@ -242,5 +268,23 @@ rule plot_nmf:
 		'benchmarks/plot_ot_{data}_nmf_{nmfp}.txt'
 	log:
 		'logs/plot_ot_{data}_nmf_{nmfp}.log'
+	shell:
+		'src/plot_ot.sh {input} {output} >& {log}'
+
+rule plot_nmf_td:
+	input:
+		'data/{data}/source_x_coordinate.txt',
+		'data/{data}/source_y_coordinate.txt',
+		'output/{data}/nmf_td/{nmf_tdp}/plan.txt',
+		'output/{data}/nmf_td/{nmf_tdp}/test_transported.txt',
+		'output/{data}/nmf_td/{nmf_tdp}/train_transported.txt'
+	output:
+		'plot/{data}/nmf_td/{nmf_tdp}/finish'
+	container:
+		'docker://koki/ot-experiments-r:20230926'
+	benchmark:
+		'benchmarks/plot_ot_{data}_nmf_td_{nmf_tdp}.txt'
+	log:
+		'logs/plot_ot_{data}_nmf_td_{nmf_tdp}.log'
 	shell:
 		'src/plot_ot.sh {input} {output} >& {log}'
