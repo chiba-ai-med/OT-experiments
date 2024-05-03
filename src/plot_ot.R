@@ -18,15 +18,15 @@ train_transported <- read.table(infile5, header=FALSE)
 
 # Plot
 tmp <- paste0(gsub("finish", "", outfile), "test.png")
-png(tmp, width=2000, height=900, bg="transparent")
-.plot_tissue_section(x_axis, y_axis, test_transported)
+png(tmp, width=1000, height=450, bg="transparent")
+.plot_tissue_section(x_axis, y_axis, test_transported, cex=2)
 dev.off()
 
 # Plot
 for(i in seq_len(ncol(train_transported))){
 	tmp <- paste0(gsub("finish", "", outfile), "train_", i, ".png")
-	png(tmp, width=2000, height=900, bg="transparent")
-	.plot_tissue_section(x_axis, y_axis, train_transported[,i])
+	png(tmp, width=1000, height=450, bg="transparent")
+	.plot_tissue_section(x_axis, y_axis, train_transported[,i], cex=2)
 	dev.off()
 }
 

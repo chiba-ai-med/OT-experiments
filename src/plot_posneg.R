@@ -31,33 +31,33 @@ outdir_neg <- gsub("target_test_data_finish", "", outfile2)
 
 # Plot (1)
 outfile_pos_test <- paste0(outdir_pos, "pos_test_data.png")
-png(outfile_pos_test, width=2000, height=900, bg="transparent")
+png(outfile_pos_test, width=1000, height=450, bg="transparent")
 .plot_tissue_section(pos_x_coordinate, pos_y_coordinate,
-	pos_test_data)
+	pos_test_data, cex=2)
 dev.off()
 
 # Plot (Many)
 for(i in seq_len(ncol(pos_train_data))){
 	tmp <- paste0(outdir_pos, "pos_train_data_", i, ".png")
-	png(tmp, width=2000, height=900, bg="transparent")
+	png(tmp, width=1000, height=450, bg="transparent")
 	.plot_tissue_section(pos_x_coordinate, pos_y_coordinate,
-		pos_train_data[,i])
-	dev.off()	
+		pos_train_data[,i], cex=2)
+	dev.off()
 }
 
 # Plot (1)
 outfile_neg_test <- paste0(outdir_neg, "neg_test_data.png")
-png(outfile_neg_test, width=2000, height=900, bg="transparent")
+png(outfile_neg_test, width=1000, height=450, bg="transparent")
 .plot_tissue_section(neg_x_coordinate, neg_y_coordinate,
-	neg_test_data)
+	neg_test_data, cex=2)
 dev.off()
 
 # Plot (Many)
 for(i in seq_len(ncol(neg_train_data))){
 	tmp <- paste0(outdir_neg, "neg_train_data_", i, ".png")
-	png(tmp, width=2000, height=900, bg="transparent")
+	png(tmp, width=1000, height=450, bg="transparent")
 	.plot_tissue_section(neg_x_coordinate, neg_y_coordinate,
-		neg_train_data[,i])
+		neg_train_data[,i], cex=2)
 	dev.off()	
 }
 
