@@ -6,13 +6,10 @@ from snakemake.utils import min_version
 # Minimum Version of Snakemake
 min_version("7.1.0")
 
-# DATASETS = ['posneg', 'spatial_multi', 'publicdb']
-DATASETS = 'posneg'
-GW_PARAMETERS = ['1E+8','1E+9','1E+10','1E+11','1E+12','1E+13','1E+14']
-OTT_GW_PARAMETERS = ['1E+9','1E+11','1E+13']
+DATASETS = 'large_posneg'
 SVD_PARAMETERS = ['0','1E+9','1E+11','1E+13']
 NMF_PARAMETERS = ['0','1E+9','1E+11','1E+13']
-NMF_TD_PARAMETERS = ['0','1E+9','1E+11','1E+13']
+NMF_TD_PARAMETERS = ['0','1E+13','1E+15','1E+17']
 
 rule all:
 	input:
@@ -24,10 +21,6 @@ rule all:
 			data=DATASETS),
 		expand('plot/{data}/target_train_data_finish',
 			data=DATASETS),
-		expand('plot/{data}/gw/{gwp}/finish',
-			data=DATASETS, gwp=GW_PARAMETERS),
-		expand('plot/{data}/ott_gw/{ott_gwp}/finish',
-			data=DATASETS, ott_gwp=OTT_GW_PARAMETERS),
 		expand('plot/{data}/svd/{svdp}/finish',
 			data=DATASETS, svdp=SVD_PARAMETERS),
 		expand('plot/{data}/nmf/{nmfp}/finish',
@@ -80,52 +73,6 @@ rule plot_data:
 		'logs/plot_data_{data}.log'
 	shell:
 		'src/plot_{wildcards.data}.sh {input} {output} >& {log}'
-
-#################################
-# Gromov-Wasserstein
-#################################
-rule gw:
-	input:
-		'data/{data}/source_test_data.txt',
-		'data/{data}/source_train_data.txt',
-		'data/{data}/target_train_data.txt'
-	output:
-		'output/{data}/gw/{gwp}/plan.txt',
-		'output/{data}/gw/{gwp}/test_transported.txt',
-		'output/{data}/gw/{gwp}/train_transported.txt'
-	container:
-		'docker://koki/ot-experiments:20230925'
-	resources:
-		mem_mb=10000
-	benchmark:
-		'benchmarks/{data}_gw_{gwp}.txt'
-	log:
-		'logs/{data}_gw_{gwp}.log'
-	shell:
-		'src/gw.sh {input} {output} {wildcards.gwp} >& {log}'
-
-#################################
-# Optimal Tensor Transport
-#################################
-rule ott_gw:
-	input:
-		'data/{data}/source_test_data.txt',
-		'data/{data}/source_train_data.txt',
-		'data/{data}/target_train_data.txt'
-	output:
-		'output/{data}/ott_gw/{ott_gwp}/plan.txt',
-		'output/{data}/ott_gw/{ott_gwp}/test_transported.txt',
-		'output/{data}/ott_gw/{ott_gwp}/train_transported.txt'
-	container:
-		'docker://koki/ott:20231012'
-	resources:
-		mem_mb=10000
-	benchmark:
-		'benchmarks/{data}_ott_gw_{ott_gwp}.txt'
-	log:
-		'logs/{data}_ott_gw_{ott_gwp}.log'
-	shell:
-		'src/ott_gw.sh {input} {output} {wildcards.ott_gwp} >& {log}'
 
 #################################
 # SVD → GW
@@ -199,42 +146,6 @@ rule nmf_td:
 #################################
 # Plot
 #################################
-rule plot_gw:
-	input:
-		'data/{data}/source_x_coordinate.txt',
-		'data/{data}/source_y_coordinate.txt',
-		'output/{data}/gw/{gwp}/plan.txt',
-		'output/{data}/gw/{gwp}/test_transported.txt',
-		'output/{data}/gw/{gwp}/train_transported.txt'
-	output:
-		'plot/{data}/gw/{gwp}/finish'
-	container:
-		'docker://koki/ot-experiments-r:20230926'
-	benchmark:
-		'benchmarks/plot_ot_{data}_gw_{gwp}.txt'
-	log:
-		'logs/plot_ot_{data}_gw_{gwp}.log'
-	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
-
-rule plot_ott_gw:
-	input:
-		'data/{data}/source_x_coordinate.txt',
-		'data/{data}/source_y_coordinate.txt',
-		'output/{data}/ott_gw/{ott_gwp}/plan.txt',
-		'output/{data}/ott_gw/{ott_gwp}/test_transported.txt',
-		'output/{data}/ott_gw/{ott_gwp}/train_transported.txt'
-	output:
-		'plot/{data}/ott_gw/{ott_gwp}/finish'
-	container:
-		'docker://koki/ot-experiments-r:20230926'
-	benchmark:
-		'benchmarks/plot_ot_{data}_ott_gw_{ott_gwp}.txt'
-	log:
-		'logs/plot_ot_{data}_ott_gw_{ott_gwp}.log'
-	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
-
 rule plot_svd:
 	input:
 		'data/{data}/source_x_coordinate.txt',
@@ -251,7 +162,7 @@ rule plot_svd:
 	log:
 		'logs/plot_ot_{data}_svd_{svdp}.log'
 	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
+		'src/plot_ot_large.sh {input} {output} >& {log}'
 
 rule plot_nmf:
 	input:
@@ -269,7 +180,7 @@ rule plot_nmf:
 	log:
 		'logs/plot_ot_{data}_nmf_{nmfp}.log'
 	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
+		'src/plot_ot_large.sh {input} {output} >& {log}'
 
 rule plot_nmf_td:
 	input:
@@ -287,4 +198,4 @@ rule plot_nmf_td:
 	log:
 		'logs/plot_ot_{data}_nmf_td_{nmf_tdp}.log'
 	shell:
-		'src/plot_ot.sh {input} {output} >& {log}'
+		'src/plot_ot_large.sh {input} {output} >& {log}'
