@@ -30,7 +30,10 @@ D = ot.dist(source.reshape((n, 1)), target.reshape((m, 1)))
 a = np.ones(n) / n
 b = np.ones(m) / m
 P = ot.sinkhorn(a, b, D, reg)
-P /= P.max()
+
+if P.max() != 0:
+    row_sums = P.sum(axis=1)
+    P = P / row_sums[:, np.newaxis]
 
 # Transportation
 t_source = np.matmul(source, P)

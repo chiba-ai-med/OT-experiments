@@ -26,10 +26,12 @@ target_train = np.loadtxt(infile3, delimiter=",")
 P1, P2 = coot(source_train, target_train, epsilon=epsilon, nits_bcd=10000)
 
 if P1.max() != 0:
-	P1 /= P1.max()
+    row_sums = P1.sum(axis=1)
+    P1 = P1 / row_sums[:, np.newaxis]
 
 if P2.max() != 0:
-	P2 /= P2.max()
+    row_sums = P2.sum(axis=1)
+    P2 = P2 / row_sums[:, np.newaxis]
 
 # Transportation
 t_source_test = np.matmul(P1.T, np.matmul(source_test, P2))

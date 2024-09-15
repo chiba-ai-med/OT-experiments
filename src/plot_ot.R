@@ -33,7 +33,7 @@ for(i in seq_len(ncol(train_transported))){
 # Plot
 tmp <- paste0(gsub("finish", "", outfile), "plan.png")
 png(tmp, width=1500, height=1500)
-image(log10(plan+1))
+.myimage(plan)
 dev.off()
 
 file.create(outfile)
